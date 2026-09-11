@@ -1,0 +1,13 @@
+{
+        "description": "Add attachments button to messages app",
+        "last_updated": "2026-09-11T22:53:15.158",
+        "name": "message_attachments",
+        "display_name": "Message Attachments",
+        "category": "messages",
+        "author": "sharks",
+        "discussion": "https://forum.sailfishos.org/t/ability-to-share-multiple-files-at-once/11550/7",
+        "donations": "",
+        "sources": "https://github.com/sharks-dev/message-attachments-patch",
+        "version": "0.0.1",
+        "compatible": ["5.1.0.11"]
+}

@@ -1,0 +1,109 @@
+ 
+diff --git a/ConversationPage.qml b/ConversationPage.qml
+index 135e26c..8ddc223 100644
+--- a/usr/share/jolla-messages/pages/ConversationPage.qml
++++ b/usr/share/jolla-messages/pages/ConversationPage.qml
+@@ -12,6 +12,7 @@ import org.nemomobile.contacts 1.0
+ import org.nemomobile.commhistory 1.0
+ import "conversation"
+ import "common"
++import Sailfish.Pickers 1.0
+
+ Page {
+     id: conversationPage
+@@ -141,10 +142,82 @@ Page {
+                 visible: !smsDisabledBanner.active
+             }
+
++            MmsHelper {
++                id: mmsHelper
++            }
++
++            IconButton {
++                id: leftButton
++
++                icon.source: "image://theme/icon-m-attach"
++
++                anchors.left: parent.left
++                anchors.leftMargin: Theme.paddingMedium
++                anchors.bottomMargin: Theme.paddingMedium
++                anchors.bottom: textInput.bottom
++
++                onClicked: {
++                        var picker = pageStack.push("Sailfish.Pickers.ImagePickerPage", {
++                                title: "Select picture"
++                        })
++
++                        picker.selectedContentPropertiesChanged.connect(function() {
++                                var filePath = picker.selectedContentProperties.filePath || ""
++
++                                if (filePath.length > 0) {
++
++                                    // Get current conversation recipient so the user doesn't have
++                                    // to manually type it in like normal when you share a picture from gallery
++                                    var recipients = conversation.message.remoteUids
++
++                                    if (!recipients || recipients.length === 0) {
++                                        console.warn("MMS Send Error: No recipient found for conversation")
++                                        return
++                                    }
++
++                                    // Build the MMS part array matching /usr/share/jolla-messages/pages/MmsShare.qml structure
++                                    var attachments = [
++                                        { "contentId": "1", "path": filePath }
++                                    ]
++
++                                    // Include any text typed in the box as a secondary part if present
++                                    if (textInput.text.trim().length > 0) {
++                                        attachments.push({
++                                            "contentId": "2",
++                                            "contentType": "text/plain",
++                                            "freeText": textInput.text
++                                        })
++                                        textInput.text = "" // Clear input field after sending
++                                    }
++
++                                    // Get the modem (for dual sim devices)
++                                    var modemInfo = MessageUtils.simManager.modemSimModel.get(
++                                        MessageUtils.simManager.indexOfModem(MessageUtils.voiceModemPath)
++                                    )
++                                    var imsi = modemInfo ? modemInfo.imsi : ""
++                                    console.log(imsi)
++
++                                    // Dispatch via MmsHelper through the correct imsi
++                                    if (imsi.length > 0) {
++                                        mmsHelper.sendMessage(imsi, recipients, [], [], "", attachments)
++                                    } else {
++                                        mmsHelper.sendMessage(recipients, [], [], "", attachments)
++                                    }
++                                }
++                            })
++                }
++            }
++
+             ConversationTextInput {
+                 id: textInput
+
+                 y: smsDisabledBanner.active ? smsDisabledBanner.height : accountErrors.height
++
++                anchors.left: leftButton.right
++                anchors.leftMargin: Theme.paddingSmall
++                anchors.right: parent.right
++                anchors.rightMargin: Theme.paddingSmall
++
+                 editorFocus: conversationPage.editorFocus
+                 enabled: accountErrors.simErrorState.length === 0
+                          && (!textInput.needsSimFeatures || MessageUtils.messagingPermitted)
+diff --git a/jolla-messages.desktop b/jolla-messages.desktop
+index ce4e9ac..c81f051 100644
+--- a/usr/share/applications/jolla-messages.desktop
++++ b/usr/share/applications/jolla-messages.desktop
+@@ -11,6 +11,6 @@ X-Maemo-Service=org.sailfishos.Messages
+ X-Maemo-Method=org.sailfishos.Messages.openUrl
+
+ [X-Sailjail]
+-Permissions=Contacts;Messages;CommunicationHistory;Privileged;Ambience;RemovableMedia;Pictures;Downloads
++Permissions=Contacts;Messages;CommunicationHistory;Privileged;Ambience;RemovableMedia;Pictures;Downloads;MediaIndexing;UserDirs
+ OrganizationName=org.sailfishos
+ ApplicationName=Messages
+\ No newline at end of file
